@@ -1,2 +1,9 @@
-/.idea/
+uv.lock
+
+__pycache__
+
+.idea/
+.venv/
+.uv/
+
 /output/
