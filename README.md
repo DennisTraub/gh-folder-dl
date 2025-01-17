@@ -1,19 +1,19 @@
-# GitHub File Downloader
+# gh-folder-dl
 
-A Python library and CLI tool for downloading files from GitHub repository folders. It tracks downloaded files in a SQLite database and only downloads files that have changed.
+A Python library and CLI tool for downloading files from GitHub repository folders, with recursive support and smart caching. It tracks downloaded files in a SQLite database to avoid re-downloading unchanged files and maintains the original directory structure.
 
 ## Installation
 
 ### As a Library
 
 ```bash
-pip install git+https://github.com/username/github-file-downloader.git
+pip install git+https://github.com/username/gh-folder-dl.git
 ```
 
 ### With CLI Tool
 
 ```bash
-pip install "git+https://github.com/username/github-file-downloader.git#egg=gh-file-downloader[cli]"
+pip install "git+https://github.com/username/gh-folder-dl.git#egg=gh-folder-dl[cli]"
 ```
 
 ## Usage
@@ -21,57 +21,68 @@ pip install "git+https://github.com/username/github-file-downloader.git#egg=gh-f
 ### As a Library
 
 ```python
-from gh_file_downloader import GitHubDownloader
+from gh_folder_dl import GitHubDownloader
+import asyncio
 
-# Initialize the downloader
-downloader = GitHubDownloader(output_path="./output", debug=True)
+async def main():
+    # Initialize the downloader
+    downloader = GitHubDownloader(output_path="./output", debug=True)
 
-# Download files from a GitHub folder
-files_downloaded = downloader.download_folder(
-    "https://github.com/aws/aws-sdk-js-v3/tree/main/codegen/sdk-codegen/aws-models"
-)
-print(f"Downloaded {files_downloaded} files")
+    # Download files from a GitHub folder
+    files_downloaded = await downloader.download_folder(
+        "https://github.com/aws/aws-sdk-js-v3/tree/main/codegen/sdk-codegen/aws-models",
+        recursive=True  # Also download subfolders
+    )
+    print(f"Downloaded {files_downloaded} files")
+
+if __name__ == "__main__":
+    asyncio.run(main())
 ```
 
 ### As a CLI Tool
 
 ```bash
 # Basic usage
-ghget https://github.com/aws/aws-sdk-js-v3/tree/main/codegen/sdk-codegen/aws-models
+ghfolder https://github.com/aws/aws-sdk-js-v3/tree/main/codegen/sdk-codegen/aws-models
 
-# Specify output directory
-ghget https://github.com/aws/aws-sdk-js-v3/tree/main/codegen/sdk-codegen/aws-models -o ./custom-output
+# Download recursively with custom output directory
+ghfolder -r https://github.com/aws/aws-sdk-js-v3/tree/main/codegen/sdk-codegen/aws-models -o ./custom-output
 
 # Enable debug logging
-ghget https://github.com/aws/aws-sdk-js-v3/tree/main/codegen/sdk-codegen/aws-models -d
+ghfolder -r -d https://github.com/aws/aws-sdk-js-v3/tree/main/codegen/sdk-codegen/aws-models
 ```
 
 ## Features
 
 - Downloads files from any public GitHub repository folder
-- Tracks downloaded files in a SQLite database
+- Recursive folder traversal (optional)
+- Maintains original directory structure
+- Smart caching using SQLite database
 - Only downloads files that have changed (based on SHA)
-- Supports debug logging
-- Can be used as a library or CLI tool
+- Detailed logging with debug option
+- Available as both a library and CLI tool
 
-## Project Structure
+## Output Structure
 
 ```
-github-file-downloader/
-├── src/
-│   └── gh_file_downloader/
-│       ├── __init__.py      # Package initialization and version
-│       ├── downloader.py    # Core library code
-│       └── cli.py          # CLI application
-├── tests/                   # Test files
-├── pyproject.toml          # Project metadata and dependencies
-├── LICENSE                 # MIT License
-└── README.md              # This file
+output/
+├── files/           # Downloaded files with original structure
+│   └── subfolder/
+├── database/        # SQLite database for file tracking
+│   └── files.db
+└── logs/           # Execution and error logs
+    ├── execution_20250117_143022.log
+    └── error_20250117_143022.log
 ```
 
 ## Development
 
-1. Clone the repository
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/username/gh-folder-dl.git
+   cd gh-folder-dl
+   ```
+
 2. Install development dependencies:
    ```bash
    pip install -e ".[cli]"

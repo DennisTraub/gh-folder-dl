@@ -1,5 +1,9 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
-name = "gh-file-downloader"
+name = "gh-folder_dl"
 dynamic = ["version"]
 description = "A library and CLI tool for downloading files from GitHub repository folders"
 readme = "README.md"
@@ -32,14 +36,10 @@ Issues = "https://github.com/username/github-file-downloader/issues"
 Source = "https://github.com/username/github-file-downloader"
 
 [project.scripts]
-ghget = "gh_file_downloader:main"
-
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+ghfolder = "gh_folder_dl.cli:main"
 
 [tool.hatch.version]
-path = "src/gh_file_downloader/__init__.py"
+path = "src/gh_folder_dl/__init__.py"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/gh_file_downloader"]
+packages = ["src/gh_folder_dl"]

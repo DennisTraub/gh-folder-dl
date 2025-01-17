@@ -1,3 +1,5 @@
+"""Core functionality for downloading GitHub repository folders."""
+
 import requests
 import sqlite_utils
 import json
@@ -145,7 +147,18 @@ class GitHubDownloader:
         return 0
 
     async def _process_folder(self, owner, repo, branch, path, relative_path=""):
-        """Process a folder and its contents, optionally recursively."""
+        """Process a folder and its contents, optionally recursively.
+
+        Args:
+            owner (str): Repository owner
+            repo (str): Repository name
+            branch (str): Branch name
+            path (str): Path to folder in repository
+            relative_path (str): Relative path from base download directory
+
+        Returns:
+            int: Number of files downloaded
+        """
         contents = self._get_folder_contents(owner, repo, branch, path)
         files_downloaded = 0
 
