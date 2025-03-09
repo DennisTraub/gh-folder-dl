@@ -1,13 +1,15 @@
 """Core functionality for downloading GitHub repository folders."""
 
+import logging
 import requests
 import sqlite_utils
-import json
-import os
-import logging
+
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlparse
+
+
+FILES_TABLE = "files"
 
 
 class GitHubDownloader:
@@ -34,7 +36,7 @@ class GitHubDownloader:
         console_handler = logging.StreamHandler()
 
         # Setup formatters
-        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
         execution_handler.setFormatter(formatter)
         error_handler.setFormatter(formatter)
         console_handler.setFormatter(formatter)
@@ -58,19 +60,22 @@ class GitHubDownloader:
     def _init_database(self):
         """Initialize SQLite database."""
         self.db = sqlite_utils.Database(self.db_dir / "files.db")
-        if "files" not in self.db.tables:
+        if FILES_TABLE not in self.db.table_names():
             self.logger.debug("Creating new files table in database")
-            self.db["files"].create({
-                "filename": str,
-                "relative_path": str,  # Added to store relative path
-                "sha": str,
-                "timestamp": str
-            }, pk=("filename", "relative_path"))  # Composite primary key
+            self.db[FILES_TABLE].create(
+                {
+                    "filename": str,
+                    "relative_path": str,  # Added to store relative path
+                    "sha": str,
+                    "timestamp": str,
+                },
+                pk=("filename", "relative_path"),
+            )  # Composite primary key
             self.logger.debug("Files table created successfully")
         else:
             self.logger.debug("Files table already exists in database")
 
-        self.files_table = self.db["files"]
+        self.files_table = self.db[FILES_TABLE]
 
     def _parse_github_url(self, url):
         """Extract repository owner, name, and path from GitHub URL."""
@@ -91,7 +96,9 @@ class GitHubDownloader:
 
     def _get_folder_contents(self, owner, repo, branch, path):
         """Fetch contents of a GitHub repository folder."""
-        api_url = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}?ref={branch}"
+        api_url = (
+            f"https://api.github.com/repos/{owner}/{repo}/contents/{path}?ref={branch}"
+        )
         self.logger.debug(f"Fetching contents from: {api_url}")
         response = requests.get(api_url)
         response.raise_for_status()
@@ -119,12 +126,18 @@ class GitHubDownloader:
             self.logger.debug(f"Processing file: {full_relative_path}")
 
             try:
-                existing_record = self.files_table.get({"filename": filename, "relative_path": relative_path})
+                existing_record = self.files_table.get(
+                    {"filename": filename, "relative_path": relative_path}
+                )
                 self.logger.debug(f"Found existing record for {full_relative_path}")
                 if existing_record["sha"] == sha:
-                    self.logger.info(f"File {full_relative_path} already exists with same SHA, skipping...")
+                    self.logger.info(
+                        f"File {full_relative_path} already exists with same SHA, skipping..."
+                    )
                     return 0
-                self.logger.debug(f"SHA mismatch for {full_relative_path}, will download")
+                self.logger.debug(
+                    f"SHA mismatch for {full_relative_path}, will download"
+                )
             except sqlite_utils.db.NotFoundError:
                 self.logger.debug(f"No existing record found for {full_relative_path}")
 
@@ -134,12 +147,15 @@ class GitHubDownloader:
 
             # Update database
             timestamp = datetime.now().isoformat()
-            self.files_table.upsert({
-                "filename": filename,
-                "relative_path": relative_path,
-                "sha": sha,
-                "timestamp": timestamp
-            }, pk=("filename", "relative_path"))
+            self.files_table.upsert(
+                {
+                    "filename": filename,
+                    "relative_path": relative_path,
+                    "sha": sha,
+                    "timestamp": timestamp,
+                },
+                pk=("filename", "relative_path"),
+            )
 
             self.logger.debug(f"Successfully processed {full_relative_path}")
             return 1
@@ -164,12 +180,16 @@ class GitHubDownloader:
 
         for item in contents:
             if item["type"] == "file":
-                files_downloaded += self._process_item(item, owner, repo, branch, path, relative_path)
+                files_downloaded += self._process_item(
+                    item, owner, repo, branch, path, relative_path
+                )
             elif item["type"] == "dir":
                 self.logger.debug(f"Found directory: {item['name']}")
                 new_path = f"{path}/{item['name']}"
-                new_relative_path = str(Path(relative_path) / item['name'])
-                files_downloaded += await self._process_folder(owner, repo, branch, new_path, new_relative_path)
+                new_relative_path = str(Path(relative_path) / item["name"])
+                files_downloaded += await self._process_folder(
+                    owner, repo, branch, new_path, new_relative_path
+                )
 
         return files_downloaded
 
@@ -198,11 +218,15 @@ class GitHubDownloader:
             # Parse GitHub URL
             self.logger.debug(f"Parsing GitHub URL: {github_url}")
             owner, repo, branch, path = self._parse_github_url(github_url)
-            self.logger.info(f"Processing repository: {owner}/{repo}, branch: {branch}, path: {path}")
+            self.logger.info(
+                f"Processing repository: {owner}/{repo}, branch: {branch}, path: {path}"
+            )
 
             files_downloaded = await self._process_folder(owner, repo, branch, path)
 
-            self.logger.info(f"Download completed successfully. Downloaded {files_downloaded} files.")
+            self.logger.info(
+                f"Download completed successfully. Downloaded {files_downloaded} files."
+            )
             return files_downloaded
 
         except Exception as e:
